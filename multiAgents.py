@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from queue import Empty
 from util import manhattanDistance
 from game import Directions
 import random, util
@@ -69,12 +70,45 @@ class ReflexAgent(Agent):
         # Useful information you can extract from a GameState (pacman.py)
         childGameState = currentGameState.getPacmanNextState(action)
         newPos = childGameState.getPacmanPosition()
-        newFood = childGameState.getFood()
+        newFood = currentGameState.getFood()
         newGhostStates = childGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+        # print("Curr Position")
+        # print(currentGameState.getPacmanPosition())
+        # print("New Position")
+        # print(newPos)
+        # print("Food")
+        # print(newFood.asList())
+        # print("Ghost States")
+        # print(newGhostStates[0].getPosition())
+
+
         "*** YOUR CODE HERE ***"
-        return childGameState.getScore()
+    
+        #get minimum distance to a ghost
+        ghost_min = 1000
+        for i in newGhostStates:
+            ghost_min = min(ghost_min, util.manhattanDistance(newPos, i.getPosition()))
+        
+        #get minimum distance to a piece of food
+        food_min = 10000
+        for i in newFood.asList():
+            food_min = min(food_min, util.manhattanDistance(newPos, i))
+
+        #create food score: want a value where the closer we are to food the better
+        if food_min == 0:
+            food_score = 10000
+        else:
+            food_score = 100/food_min
+        
+    
+        #create ghost score: want a value where close to ghost is worse
+        if ghost_min <= 1:
+            ghost_score = -10000000
+            return ghost_score
+        else:
+            return food_score
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -135,7 +169,70 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.minimaxHelper(gameState, self.depth)
+    
+    def minimaxHelper(self, gameState, depth):
+        # if depth == 0:
+        #     return self.evaluationFunction(gameState)
+
+        pacman_actions = gameState.getLegalActions(0)
+        curr_agent = 1
+        ghost_actions = []
+        while curr_agent < gameState.getNumAgents():
+            ghost_actions.append(gameState.getLegalActions(curr_agent))
+            curr_agent = curr_agent + 1
+        action_combos = self.get_all_combos(ghost_actions)
+        
+
+
+        # if depth == 0:
+        #     return (None, self.evaluationFunction(gameState))
+        # pacman_actions = gameState.getLegalActions(0)
+        # curr_agent = 1
+        # ghost_actions = []
+        # while curr_agent <= gameState.getNumAgents() - 1:
+        #     ghost_actions.append(gameState.getLegalActions(curr_agent))
+        #     curr_agent = curr_agent + 1
+        
+        # action_combos = self.get_all_combos(ghost_actions)
+        # maximum = (None,-10000000000000)
+        # for i in pacman_actions:
+        #     curr_pacman_move = gameState.getNextState(0, i)
+        #     if curr_pacman_move.isWin():
+        #         return (i, 100000000000)
+        #     if curr_pacman_move.isLose():
+        #         continue
+        #     minimum = 100000000000000
+        #     for j in action_combos:
+        #         newState = curr_pacman_move
+        #         for k in range(len(j)):
+        #             newState = newState.getNextState(k + 1, j[k])
+        #         eval = self.minimaxHelper(newState, depth - 1)[1]
+        #         if eval < minimum:
+        #             minimum = eval
+        #     if minimum > maximum[1]:
+        #         maximum = (i, minimum)
+        # print(maximum)
+        # return maximum[0]
+        
+
+    
+    def get_all_combos(self, ghost_actions):
+        if len(ghost_actions) == 0:
+            return []
+        next_combos = self.get_all_combos(ghost_actions[1:])
+        ret = []
+        for i in ghost_actions[0]:
+            for j in next_combos:
+                ret.append([i] + j)
+        return ret
+        
+
+        
+
+
+
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
