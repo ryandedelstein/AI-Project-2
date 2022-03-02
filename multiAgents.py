@@ -315,7 +315,51 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.maximize_pacman(gameState, self.depth)
+
+    def maximize_pacman(self, gameState, depth):
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        
+        pacman_moves = gameState.getLegalActions(0)
+        max_move = None
+        maximum = -1000000000
+        for i in pacman_moves:
+            curr_pacman_position = gameState.getNextState(0, i)
+            if curr_pacman_position.isWin() or curr_pacman_position.isLose():
+                eval = self.evaluationFunction(curr_pacman_position)
+            else:
+                eval = self.expected_ghosts(curr_pacman_position, depth, 1, 0, 0)
+            if eval > maximum:
+                maximum = eval
+                max_move = i
+
+        if depth == self.depth:
+            return max_move
+
+        return maximum
+
+
+    def expected_ghosts(self, gameState, depth, curr_ghost, tot, num):
+        if curr_ghost ==  gameState.getNumAgents():
+            if depth == 1:
+                return self.evaluationFunction(gameState)
+            else:
+                return self.maximize_pacman(gameState, depth - 1)
+        
+
+        actions = gameState.getLegalActions(curr_ghost)
+        if len(actions)==0:
+            return self.evaluationFunction(gameState)
+        for curr in actions:
+            newState = gameState.getNextState(curr_ghost, curr)
+            if newState.isWin() or newState.isLose():
+                eval = self.evaluationFunction(newState)
+            else:
+                eval = self.expected_ghosts(newState, depth, curr_ghost + 1, tot, num)
+            tot = tot + eval
+            num = num + 1
+        return tot / num
 
 def betterEvaluationFunction(currentGameState):
     """
