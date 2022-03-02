@@ -12,6 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from hashlib import new
 from queue import Empty
 from util import manhattanDistance
 from game import Directions
@@ -169,64 +170,59 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        return self.minimaxHelper(gameState, self.depth)
+        return self.maximize_pacman(gameState, self.depth)
     
-    def minimaxHelper(self, gameState, depth):
-        # if depth == 0:
-        #     return self.evaluationFunction(gameState)
-
-        pacman_actions = gameState.getLegalActions(0)
-        curr_agent = 1
-        ghost_actions = []
-        while curr_agent < gameState.getNumAgents():
-            ghost_actions.append(gameState.getLegalActions(curr_agent))
-            curr_agent = curr_agent + 1
-        action_combos = self.get_all_combos(ghost_actions)
-        
 
 
-        # if depth == 0:
-        #     return (None, self.evaluationFunction(gameState))
-        # pacman_actions = gameState.getLegalActions(0)
-        # curr_agent = 1
-        # ghost_actions = []
-        # while curr_agent <= gameState.getNumAgents() - 1:
-        #     ghost_actions.append(gameState.getLegalActions(curr_agent))
-        #     curr_agent = curr_agent + 1
+    #returns pair of form (move, evaluation)
+    def maximize_pacman(self, gameState, depth):
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
         
-        # action_combos = self.get_all_combos(ghost_actions)
-        # maximum = (None,-10000000000000)
-        # for i in pacman_actions:
-        #     curr_pacman_move = gameState.getNextState(0, i)
-        #     if curr_pacman_move.isWin():
-        #         return (i, 100000000000)
-        #     if curr_pacman_move.isLose():
-        #         continue
-        #     minimum = 100000000000000
-        #     for j in action_combos:
-        #         newState = curr_pacman_move
-        #         for k in range(len(j)):
-        #             newState = newState.getNextState(k + 1, j[k])
-        #         eval = self.minimaxHelper(newState, depth - 1)[1]
-        #         if eval < minimum:
-        #             minimum = eval
-        #     if minimum > maximum[1]:
-        #         maximum = (i, minimum)
-        # print(maximum)
-        # return maximum[0]
+        pacman_moves = gameState.getLegalActions(0)
+        max_move = None
+        maximum = -1000000000
+        for i in pacman_moves:
+            curr_pacman_position = gameState.getNextState(0, i)
+            if curr_pacman_position.isWin() or curr_pacman_position.isLose():
+                eval = self.evaluationFunction(curr_pacman_position)
+            else:
+                eval = self.minimize_ghosts(curr_pacman_position, depth, 1)
+            if eval > maximum:
+                maximum = eval
+                max_move = i
+
+        if depth == self.depth:
+            return max_move
+
+        return maximum
+
+
+    def minimize_ghosts(self, gameState, depth, curr_ghost):
+        if curr_ghost ==  gameState.getNumAgents():
+            if depth == 1:
+                return self.evaluationFunction(gameState)
+            else:
+                return self.maximize_pacman(gameState, depth - 1)
         
 
-    
-    def get_all_combos(self, ghost_actions):
-        if len(ghost_actions) == 0:
-            return []
-        next_combos = self.get_all_combos(ghost_actions[1:])
-        ret = []
-        for i in ghost_actions[0]:
-            for j in next_combos:
-                ret.append([i] + j)
-        return ret
-        
+        actions = gameState.getLegalActions(curr_ghost)
+        if len(actions)==0:
+            return self.evaluationFunction(gameState)
+        minimum = 10000000000000
+        for curr in actions:
+            newState = gameState.getNextState(curr_ghost, curr)
+            if newState.isWin() or newState.isLose():
+                eval = self.evaluationFunction(newState)
+            else:
+                eval = self.minimize_ghosts(newState, depth, curr_ghost + 1)
+            if eval < minimum:
+                minimum = eval
+        return minimum
+
+                
+                
+                
 
         
 
