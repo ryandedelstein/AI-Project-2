@@ -240,7 +240,67 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.maximize_pacman_prune(gameState, self.depth, -1000000000000, 100000000000000)
+
+
+    def maximize_pacman_prune(self, gameState, depth, alpha, beta):
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        
+        pacman_moves = gameState.getLegalActions(0)
+        max_move = None
+        maximum = -1000000000
+        pruning_number = -100000000000
+        for i in pacman_moves:
+            curr_pacman_position = gameState.getNextState(0, i)
+            if curr_pacman_position.isWin() or curr_pacman_position.isLose():
+                eval = self.evaluationFunction(curr_pacman_position)
+            else:
+                eval = self.minimize_ghosts_prune(curr_pacman_position, depth, 1, alpha, beta)
+            if eval > maximum:
+                maximum = eval
+                max_move = i
+            pruning_number = max(pruning_number, eval)
+            if pruning_number > beta:
+                if depth == self.depth:
+                    return max_move
+                else:
+                    return eval
+            else:
+                alpha = max(alpha, pruning_number)
+
+        if depth == self.depth:
+            return max_move
+
+        return maximum
+
+
+    def minimize_ghosts_prune(self, gameState, depth, curr_ghost, alpha, beta):
+        if curr_ghost ==  gameState.getNumAgents():
+            if depth == 1:
+                return self.evaluationFunction(gameState)
+            else:
+                return self.maximize_pacman_prune(gameState, depth - 1, alpha, beta)
+        
+
+        actions = gameState.getLegalActions(curr_ghost)
+        if len(actions)==0:
+            return self.evaluationFunction(gameState)
+        minimum = 10000000000000
+        pruning_number = 100000000000
+        for curr in actions:
+            newState = gameState.getNextState(curr_ghost, curr)
+            if newState.isWin() or newState.isLose():
+                eval = self.evaluationFunction(newState)
+            else:
+                eval = self.minimize_ghosts_prune(newState, depth, curr_ghost + 1, alpha, beta)
+            if eval < minimum:
+                minimum = eval
+            pruning_number = min(eval, pruning_number)
+            if pruning_number < alpha:
+                return pruning_number
+            beta = min(beta, pruning_number)
+        return minimum
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
