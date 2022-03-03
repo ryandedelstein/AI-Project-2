@@ -14,6 +14,7 @@
 
 from hashlib import new
 from queue import Empty
+from wsgiref.handlers import format_date_time
 from pacman import GameState
 from util import manhattanDistance
 from game import Directions
@@ -329,9 +330,10 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             curr_pacman_position = gameState.getNextState(0, i)
             if curr_pacman_position.isWin() or curr_pacman_position.isLose():
                 eval = self.evaluationFunction(curr_pacman_position)
+                
             else:
                 eval = self.expected_ghosts(curr_pacman_position, depth, 1, 0, 0)
-            if eval > maximum:
+            if eval >= maximum:
                 maximum = eval
                 max_move = i
 
@@ -363,60 +365,40 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return tot / num
 
 def betterEvaluationFunction(currentGameState):
-        newPos = currentGameState.getPacmanPosition()
-        newFood = currentGameState.getFood()
-        newGhostStates = currentGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
-        capsules = currentGameState.getCapsules()
-
-        # print("Curr Position")
-        # print(currentGameState.getPacmanPosition())
-        # print("New Position")
-        # print(newPos)
-        # print("Food")
-        # print(newFood.asList())
-        # print("Ghost States")
-        # print(newGhostStates[0].getPosition())
-
-
-        "*** YOUR CODE HERE ***"
+    pacman = currentGameState.getPacmanPosition()
+    ghosts = currentGameState.getGhostStates()
+    food = currentGameState.getFood().asList()
+    if currentGameState.isWin():
+        food_score = 10000
+    else:
+        food_score = 0
+    if currentGameState.isLose():
+        return -10000
+    # print(pacman)
+    # print(ghosts)
+    # print(food)
     
-        #get minimum distance to a ghost
-        ghost_min = 1000
-        for i in newGhostStates:
-            ghost_min = min(ghost_min, util.manhattanDistance(newPos, i.getPosition()))
-      
-        
-        
-        #get minimum distance to a piece of food
-        food_min = 10000
-        for i in newFood.asList() + capsules:
-            food_min = min(food_min, util.manhattanDistance(newPos, i))
-        
+    food_tot_distance = 0
+    minimum = 100000
+    num_food = len(food)
+    # print(num_food)
+    if num_food == 0:
+        return 100000000000
+    for i in food:
+        curr = util.manhattanDistance(pacman, i)
+        minimum = min(minimum, curr)
+        food_tot_distance = food_tot_distance + curr
 
-        #create food score: want a value where the closer we are to food the better
-        if food_min == -1:
+    if num_food == 0:
+        return 100000000000
 
-            food_score = 1000000
-        else:
-            food_score = currentGameState.getScore() - food_min - len(newFood.asList()) - len(capsules)
-        
+    food_score = food_score + (food_tot_distance / num_food + minimum) / 2
     
-        #create ghost score: want a value where close to ghost is worse
-        if ghost_min <= 1:
-            ghost_score = -10000000
-            return ghost_score
-        else:
-            ret =  -len(newFood.asList()) - food_min
-            return ret
-    # """
-    # Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-    # evaluation function (question 5).
-
-    # DESCRIPTION: <write something here so we know what you did>
-    # """
-    # "*** YOUR CODE HERE ***"
-    # return food_score(currentGameState) + ghost_score(currentGameState)
+    for i in ghosts:
+        if util.manhattanDistance(i.getPosition(), pacman) <= 1:
+            return -1000
+    a = 100/food_score + 100/num_food + currentGameState.getScore()
+    return a
 
 def food_score(gameState):
     position = gameState.getPacmanPosition()
